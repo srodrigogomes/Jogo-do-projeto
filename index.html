@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Treinamento de Defesa - Naruto no Multiverso</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&family=Inter:wght@400;600;800&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #e2e8f0;
+            background-image: radial-gradient(#1e293b 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .code-font {
+            font-family: 'Fira Code', monospace;
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .option-btn {
+            transition: all 0.2s ease;
+        }
+        .option-btn:hover {
+            transform: translateX(5px);
+            background-color: rgba(255, 159, 67, 0.1);
+            border-color: #ff9f43;
+        }
+        
+        .correct {
+            background-color: rgba(46, 204, 113, 0.2) !important;
+            border-color: #2ecc71 !important;
+            color: #2ecc71;
+        }
+
+        .wrong {
+            background-color: rgba(231, 76, 60, 0.2) !important;
+            border-color: #e74c3c !important;
+            color: #e74c3c;
+        }
+
+        .btn-disabled {
+            pointer-events: none;
+            opacity: 0.7;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .slide-in {
+            animation: slideIn 0.4s ease forwards;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <div class="max-w-3xl w-full">
+        <!-- Header -->
+        <header class="flex items-center justify-between mb-8">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-orange-500/20">
+                    NM
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-white">Treinamento de Defesa</h1>
+                    <p class="text-sm text-slate-400">Naruto no Multiverso - Code Quiz</p>
+                </div>
+            </div>
+            <div class="text-right">
+                <div class="text-xs text-slate-400 uppercase tracking-wider">Pontuação</div>
+                <div class="text-2xl font-bold text-orange-400" id="scoreDisplay">00</div>
+            </div>
+        </header>
+
+        <!-- Game Area -->
+        <main id="gameContainer" class="glass-panel rounded-2xl p-8 relative overflow-hidden">
+            <!-- Progress Bar -->
+            <div class="absolute top-0 left-0 h-1 bg-orange-500 transition-all duration-300" id="progressBar" style="width: 0%"></div>
+
+            <!-- Start Screen -->
+            <div id="startScreen" class="text-center py-10">
+                <div class="mb-6 inline-block p-4 rounded-full bg-slate-800 border border-slate-700">
+                    <i class="fas fa-code text-4xl text-orange-400"></i>
+                </div>
+                <h2 class="text-3xl font-bold mb-4 text-white">Preparado para a Banca?</h2>
+                <p class="text-slate-400 mb-8 max-w-md mx-auto">
+                    Teste seus conhecimentos sobre o código do seu jogo. 
+                    Perguntas reais sobre <code>malloc</code>, <code>structs</code>, <code>Raylib</code> e lógica do jogo.
+                </p>
+                <button onclick="startGame()" class="px-8 py-3 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-lg transition-colors shadow-lg shadow-orange-500/20">
+                    Começar o Desafio
+                </button>
+            </div>
+
+            <!-- Question Screen -->
+            <div id="questionScreen" class="hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-widest bg-slate-800 px-3 py-1 rounded-full" id="questionCategory">MEMÓRIA</span>
+                    <span class="text-sm text-slate-400">Questão <span id="currentQ">1</span>/<span id="totalQ">15</span></span>
+                </div>
+
+                <h3 class="text-xl font-semibold mb-6 leading-relaxed" id="questionText">
+                    Carregando pergunta...
+                </h3>
+
+                <div class="space-y-3" id="optionsContainer">
+                    <!-- Opções injetadas via JS -->
+                </div>
+
+                <!-- Feedback Area -->
+                <div id="feedbackArea" class="hidden mt-6 p-4 rounded-lg bg-slate-800/50 border border-slate-700 slide-in">
+                    <div class="flex items-start gap-3">
+                        <i id="feedbackIcon" class="fas fa-check-circle text-green-500 mt-1"></i>
+                        <div>
+                            <h4 class="font-bold text-white mb-1" id="feedbackTitle">Correto!</h4>
+                            <p class="text-sm text-slate-300 leading-relaxed" id="feedbackText"></p>
+                        </div>
+                    </div>
+                    <button onclick="nextQuestion()" class="mt-4 w-full py-2 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded transition-colors">
+                        Próxima Pergunta <i class="fas fa-arrow-right ml-2"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Result Screen -->
+            <div id="resultScreen" class="hidden text-center py-8">
+                <div id="rankIcon" class="text-6xl mb-4">🎓</div>
+                <h2 class="text-3xl font-bold text-white mb-2">Treino Finalizado!</h2>
+                <p class="text-slate-400 mb-6">Seu nível de conhecimento:</p>
+                
+                <div class="text-5xl font-bold text-orange-400 mb-2" id="finalScore">0</div>
+                <div class="text-xl font-bold text-white mb-8 bg-slate-800 inline-block px-6 py-2 rounded-lg border border-slate-700" id="finalRank">GENIN</div>
+
+                <div class="grid grid-cols-2 gap-4 mb-8 text-left max-w-md mx-auto">
+                    <div class="bg-slate-800 p-4 rounded-lg border border-slate-700">
+                        <div class="text-xs text-slate-500 uppercase">Acertos</div>
+                        <div class="text-2xl font-bold text-green-400" id="correctCount">0</div>
+                    </div>
+                    <div class="bg-slate-800 p-4 rounded-lg border border-slate-700">
+                        <div class="text-xs text-slate-500 uppercase">Erros</div>
+                        <div class="text-2xl font-bold text-red-400" id="wrongCount">0</div>
+                    </div>
+                </div>
+
+                <button onclick="location.reload()" class="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-lg transition-colors">
+                    <i class="fas fa-redo mr-2"></i> Tentar Novamente
+                </button>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="mt-8 text-center text-xs text-slate-500">
+            <p>Simulador desenvolvido para a defesa do projeto Naruto no Multiverso.</p>
+        </footer>
+    </div>
+
+    <script>
+        // BANCO DE PERGUNTAS BASEADO NO CÓDIGO DO USUÁRIO
+        const questions = [
+            {
+                category: "MEMÓRIA",
+                text: "No arquivo <code>palavras.c</code>, usamos a função <code>realloc</code> dentro de <code>adicionarPalavraDireta</code>. Qual é a função exata do realloc neste contexto?",
+                options: [
+                    "Limpar a memória da lista de palavras.",
+                    "Redimensionar o array dinamicamente para caber mais uma palavra.",
+                    "Alocar memória para uma única string.",
+                    "Mover a lista de palavras para o disco rígido."
+                ],
+                correct: 1,
+                explanation: "O <code>realloc</code> tenta expandir o bloco de memória existente. Se não houver espaço adjacente, ele aloca um novo bloco maior, copia os dados antigos e libera o antigo. Isso permite que a lista cresça indefinidamente."
+            },
+            {
+                category: "ARQUITETURA",
+                text: "O loop principal no <code>main.c</code> utiliza uma estrutura <code>switch(telaAtual)</code>. O que isso implementa?",
+                options: [
+                    "Uma lista encadeada.",
+                    "Um algoritmo de ordenação.",
+                    "Uma Máquina de Estados Finita (FSM).",
+                    "Uma chamada recursiva."
+                ],
+                correct: 2,
+                explanation: "Isso é uma Máquina de Estados. O jogo possui estados (MENU, JOGO, CINEMATICA) e o loop desenha e processa apenas o que é relevante para o estado atual."
+            },
+            {
+                category: "CINEMÁTICA",
+                text: "Na cinemática, usamos <code>strtok(buffer, '|')</code>. Por que usamos o caractere '|' (pipe) nos textos dos diálogos?",
+                options: [
+                    "Para indicar onde o código deve quebrar a linha visualmente na caixa de diálogo.",
+                    "Para separar o nome do personagem da fala.",
+                    "É um erro de digitação, deveria ser uma vírgula.",
+                    "Para indicar o fim da string."
+                ],
+                correct: 0,
+                explanation: "O Raylib não quebra linhas automaticamente em <code>DrawText</code>. O caractere '|' foi escolhido como um marcador especial para o código saber onde pular para a linha de baixo (Y + 26)."
+            },
+            {
+                category: "LÓGICA JOGO",
+                text: "Em <code>jogo.c</code>, a função <code>verificarLetra</code> retorna AMARELO (letraPosicaoErrada) quando:",
+                options: [
+                    "A letra não existe na palavra.",
+                    "A letra existe na palavra e está na posição correta.",
+                    "A letra existe na palavra, mas está em uma posição diferente da digitada.",
+                    "O usuário digitou um número."
+                ],
+                correct: 2,
+                explanation: "Amarelo significa: a letra faz parte da senha secreta, mas o usuário a colocou na casa errada. Verde seria posição certa, e Cinza/Preto seria inexistente."
+            },
+            {
+                category: "ARQUIVOS",
+                text: "Para salvar o progresso (<code>salvarProgresso</code>), usamos <code>fwrite</code> gerando um arquivo <code>.dat</code>. Por que não usamos texto (<code>fprintf</code>)?",
+                options: [
+                    "Porque o C não suporta arquivos de texto.",
+                    "Porque arquivos binários são mais difíceis de editar manualmente (segurança) e mais rápidos.",
+                    "Porque arquivos binários ocupam mais espaço.",
+                    "Porque o Raylib exige arquivos binários."
+                ],
+                correct: 1,
+                explanation: "O arquivo binário grava os bytes da memória diretamente. Isso evita que o jogador abra o bloco de notas e mude o nível da fase facilmente, além de ser computacionalmente mais eficiente."
+            },
+            {
+                category: "MEMÓRIA",
+                text: "Em <code>inicializarJogo</code>, usamos <code>memset(estado, 0, sizeof(EstadoJogo))</code>. O que isso faz?",
+                options: [
+                    "Aloca memória nova para o jogo.",
+                    "Libera a memória do jogo.",
+                    "Preenche toda a struct com zeros, limpando 'lixo de memória'.",
+                    "Carrega as texturas do jogo."
+                ],
+                correct: 2,
+                explanation: "O <code>memset</code> é a 'borracha'. Variáveis em C não são limpas automaticamente ao serem criadas e podem conter valores aleatórios antigos da RAM. O memset zera tudo."
+            },
+            {
+                category: "PARSING",
+                text: "Ao ler o CSV em <code>palavras.c</code>, usamos: <code>linha[strcspn(linha, '\\r\\n')] = 0;</code>. Para que serve isso?",
+                options: [
+                    "Para remover o caractere de nova linha (Enter) que o fgets lê.",
+                    "Para converter a linha para maiúsculo.",
+                    "Para dividir a linha em tokens.",
+                    "Para fechar o arquivo."
+                ],
+                correct: 0,
+                explanation: "A função <code>fgets</code> lê a linha inteira, inclusive o 'Enter' final. Isso atrapalha comparações de string. O <code>strcspn</code> acha o Enter e o substitui por 0 (null terminator), limpando a string."
+            },
+            {
+                category: "RAYLIB",
+                text: "No ciclo de desenho, se chamarmos <code>DrawText</code> fora do bloco <code>BeginDrawing() / EndDrawing()</code>, o que acontece?",
+                options: [
+                    "O texto aparece normalmente.",
+                    "O jogo fecha imediatamente.",
+                    "Nada acontece ou a tela pisca, pois o buffer gráfico não estava aberto.",
+                    "O computador reinicia."
+                ],
+                correct: 2,
+                explanation: "A Raylib precisa preparar o contexto gráfico (GPU) com <code>BeginDrawing</code>. Qualquer desenho fora desse bloco é ignorado ou causa comportamento indefinido visual."
+            },
+            {
+                category: "LÓGICA JOGO",
+                text: "A função <code>adicionarLetra</code> usa <code>toupper(letra)</code>. Qual o motivo?",
+                options: [
+                    "Para deixar o jogo mais bonito.",
+                    "Porque a tabela ASCII diferencia 'a' de 'A', e precisamos padronizar para comparar.",
+                    "Porque o teclado só funciona com maiúsculas.",
+                    "Para economizar memória."
+                ],
+                correct: 1,
+                explanation: "Em C, 'a' (97) é diferente de 'A' (65). Se a senha for 'GOKU' e compararmos com 'goku', dará errado. Padronizamos tudo para maiúsculo para garantir a lógica."
+            },
+            {
+                category: "DEFESA",
+                text: "Pergunta difícil: O que acontece se o arquivo <code>assets/palavras.csv</code> for deletado?",
+                options: [
+                    "O jogo trava (Crash).",
+                    "O jogo não abre.",
+                    "O sistema de fallback (carregarPalavrasIniciais) carrega palavras padrão hardcoded no código.",
+                    "Aparece uma tela azul."
+                ],
+                correct: 2,
+                explanation: "Isso é um ponto forte do seu código! Você implementou robustez. Se o <code>fopen</code> falhar, ele chama <code>adicionarPalavraDireta</code> manualmente com palavras como 'Goku' e 'Naruto' que estão escritas no .c."
+            },
+            {
+                category: "ESTRUTURA",
+                text: "Qual a diferença entre <code>palavras.h</code> e <code>palavras.c</code>?",
+                options: [
+                    "Não há diferença.",
+                    "O .h tem o código lógico e o .c tem as definições.",
+                    "O .h define o 'molde' (structs/protótipos) e o .c implementa a lógica real.",
+                    "O .h é para Windows e o .c para Linux."
+                ],
+                correct: 2,
+                explanation: "Header files (.h) são contratos/interfaces. Source files (.c) são a implementação. O .h diz 'existe uma struct Palavra', o .c diz 'como carregar essa palavra'."
+            },
+            {
+                category: "PERFORMANCE",
+                text: "Por que usamos <code>UnloadTexture</code> em <code>descarregarRecursosCinematica</code>?",
+                options: [
+                    "Para apagar a imagem do HD.",
+                    "Para liberar a memória VRAM da placa de vídeo e evitar vazamentos (Memory Leaks).",
+                    "Porque a Raylib exige.",
+                    "Para deixar o jogo mais lento."
+                ],
+                correct: 1,
+                explanation: "Texturas ocupam muita memória de vídeo. Se você carregar fase após fase sem descarregar as anteriores, a memória da GPU vai encher e o jogo vai travar."
+            },
+            {
+                category: "SINTAXE",
+                text: "Na struct, temos <code>char palavra[30]</code>. O que acontece se tentarmos gravar uma palavra com 50 letras?",
+                options: [
+                    "O array aumenta automaticamente.",
+                    "Ocorre um Buffer Overflow, corrompendo memória vizinha.",
+                    "A palavra é cortada automaticamente.",
+                    "O compilador avisa e corrige."
+                ],
+                correct: 1,
+                explanation: "Em C, arrays estáticos não têm proteção automática. Escrever além do limite [30] invade memória de outras variáveis, causando bugs bizarros ou crashes (Buffer Overflow)."
+            },
+            {
+                category: "MAKEFILE",
+                text: "No seu Makefile, existe uma verificação <code>ifeq ($(OS),Windows_NT)</code>. Para que serve?",
+                options: [
+                    "Para impedir que o jogo rode no Linux.",
+                    "Para detectar o Sistema Operacional e ajustar comandos (como mkdir vs mkdir -p) e bibliotecas.",
+                    "Para mudar a cor do terminal.",
+                    "Para baixar o Windows."
+                ],
+                correct: 1,
+                explanation: "Isso torna o projeto 'Cross-Platform'. Ele ajusta as flags de linkagem (libwin vs lib) e comandos de terminal dependendo de onde está sendo compilado."
+            },
+            {
+                category: "PONTEIROS",
+                text: "Em <code>adicionarPalavraDireta</code>, passamos <code>Palavra **lista</code> (ponteiro duplo). Por quê?",
+                options: [
+                    "Porque é mais chique.",
+                    "Para ter duas listas.",
+                    "Porque o <code>realloc</code> pode mudar o endereço de memória da lista, e precisamos atualizar o ponteiro original na main.",
+                    "Porque arrays em C sempre precisam de ponteiros duplos."
+                ],
+                correct: 2,
+                explanation: "Se passássemos apenas <code>*lista</code>, o realloc mudaria o endereço numa cópia local. A main continuaria apontando para o endereço antigo (inválido). O ponteiro duplo permite alterar o endereço que a main enxerga."
+            }
+        ];
+
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let correctAnswers = 0;
+        let wrongAnswers = 0;
+
+        // Elementos DOM
+        const gameContainer = document.getElementById('gameContainer');
+        const startScreen = document.getElementById('startScreen');
+        const questionScreen = document.getElementById('questionScreen');
+        const resultScreen = document.getElementById('resultScreen');
+        const progressBar = document.getElementById('progressBar');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const optionsContainer = document.getElementById('optionsContainer');
+        const feedbackArea = document.getElementById('feedbackArea');
+
+        function startGame() {
+            startScreen.classList.add('hidden');
+            questionScreen.classList.remove('hidden');
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            const q = questions[currentQuestionIndex];
+            
+            // Atualizar UI
+            document.getElementById('questionCategory').innerText = q.category;
+            document.getElementById('currentQ').innerText = currentQuestionIndex + 1;
+            document.getElementById('totalQ').innerText = questions.length;
+            document.getElementById('questionText').innerHTML = q.text; // innerHTML para permitir tags <code>
+
+            // Barra de progresso
+            const progress = ((currentQuestionIndex) / questions.length) * 100;
+            progressBar.style.width = `${progress}%`;
+
+            // Limpar opções e feedback
+            optionsContainer.innerHTML = '';
+            feedbackArea.classList.add('hidden');
+
+            // Gerar botões
+            q.options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = `option-btn w-full text-left p-4 rounded-lg border border-slate-700 bg-slate-800/50 text-slate-300 font-medium code-font hover:bg-slate-700`;
+                btn.innerHTML = `<span class="inline-block w-6 font-bold text-slate-500 mr-2">${String.fromCharCode(65+index)}.</span> ${opt}`;
+                btn.onclick = () => checkAnswer(index, btn);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(selectedIndex, btnElement) {
+            const q = questions[currentQuestionIndex];
+            const buttons = optionsContainer.querySelectorAll('button');
+            
+            // Desabilitar todos os botões
+            buttons.forEach(btn => btn.classList.add('btn-disabled'));
+
+            const isCorrect = selectedIndex === q.correct;
+
+            if (isCorrect) {
+                btnElement.classList.add('correct');
+                score += 100;
+                correctAnswers++;
+                showFeedback(true, q.explanation);
+            } else {
+                btnElement.classList.add('wrong');
+                // Mostrar a correta
+                buttons[q.correct].classList.add('correct');
+                wrongAnswers++;
+                showFeedback(false, q.explanation);
+            }
+
+            scoreDisplay.innerText = score;
+        }
+
+        function showFeedback(isCorrect, text) {
+            feedbackArea.classList.remove('hidden');
+            const title = document.getElementById('feedbackTitle');
+            const icon = document.getElementById('feedbackIcon');
+            const desc = document.getElementById('feedbackText');
+
+            if (isCorrect) {
+                title.innerText = "Resposta Correta! 🎯";
+                title.className = "font-bold text-green-400 mb-1";
+                icon.className = "fas fa-check-circle text-green-500 mt-1";
+            } else {
+                title.innerText = "Resposta Incorreta ❌";
+                title.className = "font-bold text-red-400 mb-1";
+                icon.className = "fas fa-times-circle text-red-500 mt-1";
+            }
+
+            desc.innerHTML = text;
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < questions.length) {
+                loadQuestion();
+            } else {
+                finishGame();
+            }
+        }
+
+        function finishGame() {
+            questionScreen.classList.add('hidden');
+            resultScreen.classList.remove('hidden');
+            progressBar.style.width = '100%';
+
+            document.getElementById('finalScore').innerText = score;
+            document.getElementById('correctCount').innerText = correctAnswers;
+            document.getElementById('wrongCount').innerText = wrongAnswers;
+
+            // Calcular Rank
+            const percentage = (correctAnswers / questions.length) * 100;
+            let rank = "";
+            let rankColor = "";
+            let emoji = "";
+
+            if (percentage === 100) { rank = "HOKAGE 🌟"; rankColor = "text-orange-500"; emoji = "🔥"; }
+            else if (percentage >= 80) { rank = "JONIN ⚔️"; rankColor = "text-red-500"; emoji = "🥷"; }
+            else if (percentage >= 50) { rank = "CHUNIN 📜"; rankColor = "text-green-500"; emoji = "😐"; }
+            else { rank = "ESTUDANTE DA ACADEMIA 🥚"; rankColor = "text-slate-500"; emoji = "📚"; }
+
+            const rankEl = document.getElementById('finalRank');
+            rankEl.innerText = rank;
+            rankEl.className = `text-xl font-bold mb-8 bg-slate-800 inline-block px-6 py-2 rounded-lg border border-slate-700 ${rankColor}`;
+            document.getElementById('rankIcon').innerText = emoji;
+        }
+    </script>
+</body>
+</html>
